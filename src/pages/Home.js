@@ -1,12 +1,99 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import * as jsonexport from "jsonexport/dist";
+import MUIDataTable from "mui-datatables";
+import axios from "axios";
 
 function Home() {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const DATA_URL = process.env.REACT_APP_URL;
+
+  const columns = [
+    {
+      name: "id",
+      label: "ID",
+      options: {
+        filter: true,
+        sort: true,
+      },
+    },
+    {
+      name: "categoria",
+      label: "Categoria",
+      options: {
+        display: false,
+      },
+    },
+    {
+      name: "proyecto",
+      label: "Proyecto",
+
+      options: {
+        display: false,
+      },
+    },
+    {
+      name: "reproducible",
+      label: "Reproducible",
+      options: {
+        display: false,
+      },
+    },
+    {
+      name: "resolucion",
+      label: "Resolución",
+      options: {
+        display: false,
+      },
+    },
+    {
+      name: "prioridad",
+      label: "Prioridad",
+    },
+    {
+      name: "descripcion",
+      label: "Descripción",
+    },
+    {
+      name: "reportado_por",
+      label: "Reportado por",
+    },
+    {
+      name: "severidad",
+      label: "Severidad",
+    },
+    {
+      name: "estado",
+      label: "Estado",
+    },
+    {
+      name: "creado_el",
+      label: "Creado el",
+    },
+    {
+      name: "enlace",
+      label: "Información",
+      options: {
+        customBodyRender: (value, tableMeta, updateValue) => {
+          return (
+            <Link to={"/issues/" + value}>
+              <button type="button">¡Ver más!</button>
+            </Link>
+          );
+        },
+      },
+    },
+  ];
+
+  const BotonMagico = (props) => {
+    return (
+      <Link to={"/issues/" + props.value}>
+        <button type="button">Click Me!</button>
+      </Link>
+    );
+  };
 
   const download = function (data) {
     // Creating a Blob for having a csv file format
@@ -35,15 +122,20 @@ function Home() {
     let exportToCsv = [];
 
     issues.forEach((data) => {
+      console.log(data);
       exportToCsv.push({
         id: data.id,
-        prioridad: data.priority.name,
-        descripcion: data.description,
-        asignado_a: data.handler ? data.handler.real_name : "Sin asignar",
-        reportado_por: data.reporter.real_name,
-        severidad: data.severity.name,
-        estado: data.status.name,
-        creado_el: data.created_at,
+        categoria: data.categoria,
+        proyecto: data.proyecto,
+        reproducible: data.reproducible,
+        resolucion: data.resolucione,
+        prioridad: data.prioridad,
+        descripcion: data.descripcion,
+        asignado_a: data.asignado_a,
+        reportado_por: data.reportado_por,
+        severidad: data.severidad,
+        estado: data.estado,
+        creado_el: data.creado_el,
       });
     });
 
@@ -54,61 +146,86 @@ function Home() {
     });
   };
 
-  useEffect(() => {
-    fetch(DATA_URL)
-      .then((response) => response.json())
-      .then((data) => {
-        setIssues(data.issues);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.log(err.message);
-      });
-  }, []);
+  const handleFetchAPI = async () => {
+    await axios.get(DATA_URL).then((response) => {
+      const data = response.data;
+      let refactorData = [];
 
-  if (loading) {
-    return (
-      <div className="container">
-        <h1>Cargando datos...</h1>
-      </div>
-    );
-  }
+      data.issues.forEach((data) => {
+        refactorData.push({
+          id: data.id,
+          categoria: data.category.name,
+          proyecto: data.project.name,
+          reproducible: data.reproducibility.name,
+          resolucion: data.resolution.name,
+          prioridad: data.priority.name,
+          descripcion: data.description,
+          asignado_a: data.handler ? data.handler.real_name : "Sin asignar",
+          reportado_por: data.reporter.real_name ?? data.reporter.name,
+          severidad: data.severity.name,
+          estado: data.status.name,
+          creado_el: data.created_at,
+          enlace: data.id,
+        });
+      });
+
+      setIssues(refactorData);
+    });
+
+    // fetch(DATA_URL)
+    //   .then((response) => response.json())
+    //   .then((data) => {
+    //     setIssues(data.issues);
+
+    //     console.log(data.issues);
+
+    //     // let insertDataColum = [];
+
+    //     // data.issues.forEach((data) => {
+    //     //   insertDataColum.push([
+    //     //     data.id,
+    //     //     data.category.name,
+    //     //     data.project.name,
+    //     //     data.reproducibility.name,
+    //     //     data.resolution.name,
+    //     //     data.priority.name,
+    //     //     data.description,
+    //     //     data.handler ? data.handler.real_name ?? data.handler.name : "Sin asignar",
+    //     //     data.reporter.real_name ?? data.reporter.name,
+    //     //     data.severity.name,
+    //     //     data.status.name,
+    //     //     data.created_at,
+    //     //   ]);
+    //     // });
+
+    //     // console.log(insertDataColum);
+    //     // setDataColumn(insertDataColum);
+    //     setLoading(false);
+    //   })
+    //   .catch((err) => {
+    //     console.log(err.message);
+    //   });
+  };
+
+  const options = {
+    filterType: "checkbox",
+    // sort: false,
+    resizableColumns: true,
+    draggableColumns: {
+      enabled: true,
+    },
+  };
+
+  useEffect(() => {
+    handleFetchAPI();
+  }, [loading]);
+
   return (
     <div className="container">
       <h1>
         Información de las incidencias <button onClick={() => handleExportCSV()}>Descargar CSV</button>
       </h1>
-
-      <table id="xls" className="table table-bordered table-dark table-hover">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Prioridad</th>
-            <th>Descripción</th>
-            <th>Asignado a</th>
-            <th>Severidad</th>
-            <th>Estado</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {issues.map((data) => {
-            return (
-              <tr key={data.id}>
-                <td>{data.id}</td>
-                <td>{data.priority.name}</td>
-                <td>{data.description}</td>
-                <td>{data.handler ? data.handler.name : "Sin asignar"}</td>
-                <td>{data.severity.name}</td>
-                <td>{data.status.name}</td>
-                <td>
-                  <Link to={"/issues/" + data.id}>Ver mas</Link>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <MUIDataTable title={"Mantis API"} data={issues} columns={columns} options={options} />
     </div>
   );
 }
